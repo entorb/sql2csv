@@ -4,3 +4,4 @@ connects to DB, reads *.sql files, runs containing select, export as .csv and/or
 ## TODOs
 * Use Object Orientation
 * create 1 master class that loads the config file and dependent on settings loads DB-dependent sub-classes
+
