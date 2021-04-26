@@ -42,7 +42,7 @@ import datetime
 import openpyxl  # Excel
 
 import pyodbc  # ODBC
-# import cx_Oracle # alternative library
+import cx_Oracle  # alternative library for oracle
 import psycopg2  # PostgreSQL
 import sqlite3
 
@@ -75,18 +75,20 @@ def connect():
         connection = sqlite3.connect(credentials['database'])
         credentials['host'] = 'localhost'
     elif credentials['db_type'] == 'oracle':
-        connection = pypyodbc.connect(
-            f"DRIVER={{ORACLE ODBC DRIVER}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}")
-
-        # connection = cx_Oracle.connect(
-        #     credentials['user'],
-        #     credentials['password'],
-        #     f"{credentials['host']}:{credentials['port']}/{credentials['database']}",
-        #     encoding="UTF-8"
+        # connection = pyodbc.connect(
+        #     f"DRIVER={{ORACLE ODBC DRIVER}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}"
         # )
+
+        connection = cx_Oracle.connect(
+            credentials['user'],
+            credentials['password'],
+            f"{credentials['host']}:{credentials['port']}/{credentials['database']}",
+            encoding="UTF-8"
+        )
     elif credentials['db_type'] == 'mssql':
         connection = pyodbc.connect(
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}")
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}"
+        )
     else:
         raise Exception(
             f"ERROR: unsupported db_type: '{credentials['db_type']}'")
@@ -116,11 +118,10 @@ def sql_check_danger(sql: str):
         # bad = True
         raise Exception(f"ERROR: dangerous SQL: \n{sql}")
         # sys.exit(1)
-
-    res = re.match(r'\bselect\b', sql.lower())
+    res = re.match(r'[^\b](select)\b', sql.lower())
     if res != None:
-        raise Exception(f"ERROR: no valid SQL: \n{sql}")
-
+        # bad = True
+        raise Exception(f"ERROR: not valid SQL: \n{sql}")
     # return bad
 
 
