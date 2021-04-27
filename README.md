@@ -12,9 +12,10 @@
 * MS SQL 
 * SQLite3
 
-## Security Warning
-ONLY USE READ-ONLY DB-USER ACCOUNTS via:<br/>
-GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username
+## **SECURITY WARNING:** Only use read-only db-user accounts! <br/>:
+example for PostgreSQL<br/>
+    GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username
+    GRANT USAGE ON SCHEMA schema_name TO username
 
 ## Requirements
 ### Oracle
@@ -28,3 +29,9 @@ Microsoft ODBC Driver for SQL Server
 from
 https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver15
 install
+
+## TODOs
+- [x] Scan SQL for dangerous commands like DROP/DELETE (incomplete!)
+- [x] Limits the max number of returned rows via limit on cells = columns * rows
+- [] Excel: autosize column width
+- [] hashing of SQL files to prevent modification
