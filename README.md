@@ -3,7 +3,7 @@
 ## Features
 * connects to a database
 * reads all .sql files of current directory
-* excecutes one after the other
+* executes one after the other
 * writes results to text (.csv) and Excel (.xslx) files
 
 ## Supported Databases
