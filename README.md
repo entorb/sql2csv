@@ -15,8 +15,8 @@
 ## TODOs
 - [x] scan SQL for dangerous commands like DROP/DELETE (incomplete!)
 - [x] Limits the max number of returned rows via limit on cells = columns * rows
+- [x] hashing of SQL files to prevent modification
 - [ ] Excel: autosize column width
-- [ ] hashing of SQL files to prevent modification
 - [ ] use [sqlparse](https://sqlparse.readthedocs.io/en/latest/api/) to remove comments from SQL
 
 ## **SECURITY WARNING:** Only use read-only db-user accounts!
