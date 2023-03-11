@@ -7,6 +7,7 @@ results are written to .csv files
 
 ONLY USE READ-ONLY DB-USER ACCOUNTS via:
 GRANT SELECT ON SCHEMA :: [dbo] TO username
+
 """
 # Convert to .exe via
 # pyinstaller --onefile --console sql2csv_mssql.py

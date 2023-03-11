@@ -7,6 +7,7 @@ results are written to .csv files
 
 ONLY USE READ-ONLY DB-USER ACCOUNTS via:
 GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username
+
 """
 
 # Convert to .exe via
