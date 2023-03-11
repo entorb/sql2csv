@@ -1,10 +1,10 @@
 # sql2csv
 
 ## Features
-* connects to a database
-* reads all .sql files of current directory
-* executes one after the other
-* writes results to text (.csv) and Excel (.xslx) files
+* connect to a database
+* read all .sql files of current directory
+* execute one after the other
+* export results set as text (.csv) and Excel (.xslx)
 
 ## Supported Databases
 * PostgreSQL
@@ -13,7 +13,7 @@
 * SQLite3
 
 ## TODOs
-- [x] Scan SQL for dangerous commands like DROP/DELETE (incomplete!)
+- [x] scan SQL for dangerous commands like DROP/DELETE (incomplete!)
 - [x] Limits the max number of returned rows via limit on cells = columns * rows
 - [ ] Excel: autosize column width
 - [ ] hashing of SQL files to prevent modification
