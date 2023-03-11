@@ -205,7 +205,7 @@ def sql2xlsx(results: list, outfilename: str):
     workbookOut = openpyxl.Workbook()
     sheetOut = workbookOut.active
 
-    colnames = results.pop(0)  # header row
+    colnames = results[0]  # header row
     i = 1
     j = 1
     for value in colnames:
