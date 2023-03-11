@@ -13,6 +13,7 @@ Oracle Instant Client - Basic Light Package
 from
 https://www.oracle.com/database/technologies/instant-client/winx64-64-downloads.html
 download and unzip and add dir to path
+
 """
 
 # Convert to .exe via
