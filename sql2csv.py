@@ -3,6 +3,7 @@
 source at
 https://github.com/entorb/sql2csv
 
+## Features (copied from README.md)
 * connects to a database
 * reads all .sql files of current directory
 * excecutes one after the other
@@ -39,12 +40,13 @@ import re
 import glob
 import datetime
 
-import openpyxl  # Excel
+import openpyxl  # Excel: pip install openpyxl
+import hashlib  # for sha256 checksums
 
-import pyodbc  # ODBC
-import cx_Oracle  # alternative library for oracle
-import psycopg2  # PostgreSQL
 import sqlite3
+import pyodbc  # ODBC driver for MS SQL and others  - pip install pyodbc
+import cx_Oracle  # driver for Oracle - pip install cx_Oracle
+import psycopg2  # PostgreSQL - pip install psycopg2
 
 
 import my_credentials  # my credential file
@@ -53,7 +55,6 @@ import my_credentials  # my credential file
 # credentials_1 = {'db_type' : 'mssql', 'host': 'myHost', 'port': 5432,
 #                  'database': 'myDB', 'user': 'myUser', 'password': 'myPwd'}
 credentials = my_credentials.credentials_1
-
 # supported db_types:
 # - oracle
 # - postgres
@@ -108,10 +109,13 @@ def sql_check_danger(sql: str):
         'create',
         'alter',
         'drop',
+        'grant',
+        'revoke',
         'insert',
         'update',
         'delete',
-        'truncate'
+        'truncate',
+        'commit'
     )
     res = re.match(r'\b(' + '|'.join(bad_words) + r')\b', sql.lower())
     if res != None:
@@ -234,6 +238,16 @@ def convert_value_to_string(value, remove_linebreaks: bool = True, trim: bool = 
     else:
         print(f"unhandled column type: {t}")
     return value_str
+
+
+def gen_checksum(s: str, my_secret: str) -> str:
+    """ 
+    calculates a sha256 checksum/hash of a string 
+    add a "secret/salt" to the string to prevent others from being able to reproduce the checksum without knowing the secret
+    """
+    m = hashlib.sha256()
+    m.update((s + my_secret).encode('utf-8'))
+    return m.hexdigest()
 
 
 if __name__ == '__main__':
