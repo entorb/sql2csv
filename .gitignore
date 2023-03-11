@@ -1,5 +1,6 @@
 *.csv
-*.xlsx
 *.sql
+*.xlsx
 .vscode/launch.json
-credentials.py
+my_credentials.py
+__pycache__/**
