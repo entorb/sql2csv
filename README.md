@@ -1,7 +1,28 @@
 # sql2csv
-connects to DB, reads *.sql files, runs containing select, export as .csv and/or Excel files per .sql file
+* connects to a database
+* reads all .sql files of current directory
+* excecutes one after the other
+* writes results to text (.csv) and Excel (.xslx) files
 
-## TODOs
-* Use Object Orientation
-* create 1 master class that loads the config file and dependent on settings loads DB-dependent sub-classes
+## Supported Databases
+* PostgreSQL
+* Oracle
+* MS SQL 
+* SQLite3
 
+## Security Warning
+ONLY USE READ-ONLY DB-USER ACCOUNTS via:
+GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username
+
+## Requirements
+### Oracle
+Oracle Instant Client - Basic Light Package
+from
+https://www.oracle.com/database/technologies/instant-client/winx64-64-downloads.html
+download and unzip and add dir to path
+
+### MS SQL
+Microsoft ODBC Driver for SQL Server
+from
+https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver15
+install

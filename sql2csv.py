@@ -1,46 +1,66 @@
 #!/usr/bin/python
 """
-connects to a database
-reads all .sql files of current directory
-excecutes one after the other
-results are written to .csv files
+source at
+https://github.com/entorb/sql2csv
 
+* connects to a database
+* reads all .sql files of current directory
+* excecutes one after the other
+* writes results to text (.csv) and Excel (.xslx) files
+
+## Supported Databases
+* PostgreSQL
+* Oracle
+* MS SQL 
+
+## Security Warning
 ONLY USE READ-ONLY DB-USER ACCOUNTS via:
 GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username
 
-Requirements
+## Requirements
+### Oracle
 Oracle Instant Client - Basic Light Package
 from
 https://www.oracle.com/database/technologies/instant-client/winx64-64-downloads.html
 download and unzip and add dir to path
 
+### MS SQL
+Microsoft ODBC Driver for SQL Server
+from
+https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver15
+install
 """
 
 # Convert to .exe via
-# pyinstaller --onefile --console sql2csv_oracle.py
-
-# FIXME: this security check is not working
-# if (sql1.find('insert') or sql1.find('update') or sql1.find('delete') or sql1.find('drop') or sql1.find('grant')):
-#     print ("invalid SQL")
-#     sys.exit(1)
-
+# pyinstaller --onefile --console sql2csv.py
 
 import os
+import re
 import glob
-import cx_Oracle
-import psycopg2
 import datetime
-import openpyxl
-import my_credentials
-credentials = {'host': 'myHost', 'port': 5432,
-               'database': 'myDB', 'user': 'myUser', 'password': 'myPwd'}
 
-# credentials = my_credentials.credentials
-# credentials = my_credentials.credentials
+import openpyxl  # Excel
+
+import pyodbc  # ODBC
+# import cx_Oracle # alternative library
+import psycopg2  # PostgreSQL
+import sqlite3
 
 
-# db_type = 'oracle'
-db_type = 'postgres'
+import my_credentials  # my credential file
+# for sqlite3 only key 'database' -> path to file database is required
+# example
+# credentials_1 = {'db_type' : 'mssql', 'host': 'myHost', 'port': 5432,
+#                  'database': 'myDB', 'user': 'myUser', 'password': 'myPwd'}
+credentials = my_credentials.credentials_1
+
+# supported db_types:
+# - oracle
+# - postgres
+# - mssql
+# - sqlite3
+
+cnt_max_cells = 100000
 
 
 def connect():
@@ -48,15 +68,28 @@ def connect():
     connection = None
     cursor = None
     # try:
-    if db_type == 'oracle':
-        connection = cx_Oracle.connect(
-            credentials['user'],
-            credentials['password'],
-            f"{credentials['host']}:{credentials['port']}/{credentials['database']}",
-            encoding="UTF-8"
-        )
-    if db_type == 'postgres':
+    if credentials['db_type'] == 'postgres':
         connection = psycopg2.connect(**credentials)
+    elif credentials['db_type'] == 'sqlite3':
+        # here database is the path to the database file
+        connection = sqlite3.connect(credentials['database'])
+        credentials['host'] = 'localhost'
+    elif credentials['db_type'] == 'oracle':
+        connection = pypyodbc.connect(
+            f"DRIVER={{ORACLE ODBC DRIVER}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}")
+
+        # connection = cx_Oracle.connect(
+        #     credentials['user'],
+        #     credentials['password'],
+        #     f"{credentials['host']}:{credentials['port']}/{credentials['database']}",
+        #     encoding="UTF-8"
+        # )
+    elif credentials['db_type'] == 'mssql':
+        connection = pyodbc.connect(
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}")
+    else:
+        raise Exception(
+            f"ERROR: unsupported db_type: '{credentials['db_type']}'")
 
     cursor = connection.cursor()
     print(
@@ -66,28 +99,55 @@ def connect():
     return connection, cursor
 
 
+def sql_check_danger(sql: str):
+    """ raises Exception in case SQL contains dangerous words """
+    # bad = False
+    bad_words = (
+        'create',
+        'alter',
+        'drop',
+        'insert',
+        'update',
+        'delete',
+        'truncate'
+    )
+    res = re.match(r'\b(' + '|'.join(bad_words) + r')\b', sql.lower())
+    if res != None:
+        # bad = True
+        raise Exception(f"ERROR: dangerous SQL: \n{sql}")
+        # sys.exit(1)
+
+    res = re.match(r'\bselect\b', sql.lower())
+    if res != None:
+        raise Exception(f"ERROR: no valid SQL: \n{sql}")
+
+    # return bad
+
+
 def execute_sql(sql: str) -> list:
     """ Excecute SQL statement and return results as list """
     results = []
     try:
         cursor.execute(sql)
         colnames = [desc[0] for desc in cursor.description]
+        cnt_columns = len(colnames)
         results.append(colnames)
         cnt = 0
         for row in cursor:
             results.append(row)
-            cnt += 1
-            if cnt > 1000:
+            cnt += cnt_columns
+            if cnt > cnt_max_cells:
                 raise Exception(
-                    "ERROR: too many rows, stopped after 1000 rows")
+                    f"ERROR: too many values, stopped after {cnt_max_cells} values")
     except (Exception) as error:
         cursor.execute('ROLLBACK')
         print(error)
     return results
 
 
-def sql2csv(results: list, outfile: str = 'out.csv'):
+def sql2csv(results: list, outfilename: str):
     """ Write results into csv file """
+    outfile = outfilename + '.csv'
     if os.path.isfile(outfile):
         os.remove(outfile)
 
@@ -108,8 +168,9 @@ def sql2csv(results: list, outfile: str = 'out.csv'):
             fh.write("\n")
 
 
-def sql2xlsx(results: list, outfile: str = 'out.xlsx'):
+def sql2xlsx(results: list, outfilename: str):
     """ Write results into xlsx file """
+    outfile = outfilename + '.xlsx'
     if os.path.isfile(outfile):
         os.remove(outfile)
     if len(results) <= 1:
@@ -147,6 +208,7 @@ def sql2xlsx(results: list, outfile: str = 'out.xlsx'):
 
 
 def convert_value_to_string(value, remove_linebreaks: bool = True, trim: bool = True) -> str:
+    """ converts SQL field types to strings, used in sql2csv """
     value_str = ""
     t = type(value)
     if value == None:
@@ -181,10 +243,11 @@ if __name__ == '__main__':
 
         with open(filename, mode='r', encoding='utf-8') as fh:
             sql = fh.read()
+        sql_check_danger(sql=sql)
         results = execute_sql(sql=sql)
         if len(results) > 1:
-            sql2csv(results=results, outfile=fileBaseName+".csv")
-            sql2xlsx(results=results, outfile=fileBaseName+".xlsx")
+            sql2csv(results=results, outfilename=fileBaseName)
+            sql2xlsx(results=results, outfilename=fileBaseName)
 
     if (connection):
         cursor.close()

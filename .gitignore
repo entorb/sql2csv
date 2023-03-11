@@ -1,6 +1,9 @@
+__pycache__/
+build/
+dist/
+*.spec
 *.csv
 *.sql
 *.xlsx
 .vscode/launch.json
 my_credentials.py
-__pycache__/**
