@@ -3,7 +3,7 @@
 source at
 https://github.com/entorb/sql2csv
 
-## Features (copied from README.md)
+## Features
 * connects to a database
 * reads all .sql files of current directory
 * excecutes one after the other
@@ -13,23 +13,32 @@ https://github.com/entorb/sql2csv
 * PostgreSQL
 * Oracle
 * MS SQL 
+* SQLite3
 
-## Security Warning
-ONLY USE READ-ONLY DB-USER ACCOUNTS via:
-GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username
+## **SECURITY WARNING:** Only use read-only db-user accounts! <br/>:
+example for PostgreSQL<br/>
+    GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username
+    GRANT USAGE ON SCHEMA schema_name TO username
 
 ## Requirements
 ### Oracle
 Oracle Instant Client - Basic Light Package
 from
 https://www.oracle.com/database/technologies/instant-client/winx64-64-downloads.html
-download and unzip and add dir to path
+download, unzip and add dir to path
 
 ### MS SQL
 Microsoft ODBC Driver for SQL Server
 from
 https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver15
 install
+
+## TODOs
+- [x] Scan SQL for dangerous commands like DROP/DELETE (incomplete!)
+- [x] Limits the max number of returned rows via limit on cells = columns * rows
+- [] Excel: autosize column width
+- [] hashing of SQL files to prevent modification
+
 """
 
 # Convert to .exe via
@@ -40,6 +49,7 @@ import re
 import glob
 import datetime
 
+import csv  # CSV writing
 import openpyxl  # Excel: pip install openpyxl
 import hashlib  # for sha256 checksums
 
@@ -62,6 +72,11 @@ credentials = my_credentials.credentials_1
 # - sqlite3
 
 cnt_max_cells = 100000
+csv_format_datetime = "%Y-%m-%d_%H:%M:%S"
+csv_format_date = "%Y-%m-%d"
+csv_delimiter = "\t"  # \t ; ,
+csv_quotechar = '"'
+csv_newline = "\n"
 
 
 def connect():
@@ -156,12 +171,14 @@ def sql2csv(results: list, outfilename: str):
     if os.path.isfile(outfile):
         os.remove(outfile)
 
-    if len(results) <= 1:
-        return
-    with open(outfile, mode='w', encoding='utf-8', newline='\n') as fh:
+    # if len(results) <= 1:
+    #     return
+
+    with open(outfile, mode='w', encoding='utf-8', newline=csv_newline) as fh:
+        csvwriter = csv.writer(
+            fh, delimiter=csv_delimiter, quotechar=csv_quotechar)
         colnames = results[0]  # header row
-        fh.write("\t".join(colnames))
-        fh.write("\n")
+        csvwriter.writerow(colnames)
         for k in range(1, len(results)):
             row = results[k]
             row_str = []
@@ -169,8 +186,7 @@ def sql2csv(results: list, outfilename: str):
                 value_str = convert_value_to_string(
                     value, remove_linebreaks=True, trim=True)
                 row_str.append(value_str)
-            fh.write("\t".join(row_str))
-            fh.write("\n")
+            csvwriter.writerow(row_str)
 
 
 def sql2xlsx(results: list, outfilename: str):
@@ -178,8 +194,6 @@ def sql2xlsx(results: list, outfilename: str):
     outfile = outfilename + '.xlsx'
     if os.path.isfile(outfile):
         os.remove(outfile)
-    if len(results) <= 1:
-        return
     workbookOut = openpyxl.Workbook()
     sheetOut = workbookOut.active
 
@@ -232,9 +246,9 @@ def convert_value_to_string(value, remove_linebreaks: bool = True, trim: bool = 
     elif t == int:
         value_str = str(value)
     elif t == datetime.datetime:
-        value_str = value.strftime("%Y-%m-%d_%H:%M:%S")
+        value_str = value.strftime(csv_format_datetime)
     elif t == datetime.date:
-        value_str = value.strftime("%Y-%m-%d")
+        value_str = value.strftime(csv_format_date)
     else:
         print(f"unhandled column type: {t}")
     return value_str
@@ -260,9 +274,9 @@ if __name__ == '__main__':
             sql = fh.read()
         sql_check_danger(sql=sql)
         results = execute_sql(sql=sql)
-        if len(results) > 1:
-            sql2csv(results=results, outfilename=fileBaseName)
-            sql2xlsx(results=results, outfilename=fileBaseName)
+        # if len(results) > 1:
+        sql2csv(results=results, outfilename=fileBaseName)
+        sql2xlsx(results=results, outfilename=fileBaseName)
 
     if (connection):
         cursor.close()
