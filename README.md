@@ -14,7 +14,7 @@
 
 ## **SECURITY WARNING:** Only use read-only db-user accounts!
 example for PostgreSQL<br/>
-`GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username`
+`GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username`<br/>
 `GRANT USAGE ON SCHEMA schema_name TO username`
 
 ## Requirements
