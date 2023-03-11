@@ -29,7 +29,8 @@ def gen_checksum(s: str, my_secret: str) -> str:
 if __name__ == '__main__':
     for filename in glob.glob("*.sql"):
         print(f'File: {filename}')
-        fh = open(filename, mode='r', encoding='utf-8', newline='\n')
+        # not set newline type here, it might be \n or \r\n
+        fh = open(filename, mode='r', encoding='utf-8')
         cont = fh.read()
         fh.close()
 
