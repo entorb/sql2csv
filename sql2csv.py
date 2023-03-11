@@ -73,19 +73,11 @@ csv_quotechar = '"'
 csv_newline = "\n"
 
 
-# helper functions
-def remove_old_output_files(fileBaseName: str):
-    """
-    remove output files prior to re-creation
-    this is done prior to hash check to ensure that there is no output file in case the hash is bad
-    """
-    for ext in (".csv", ".xlsx"):
-        outfile = fileBaseName + ext
-        if os.path.isfile(outfile):
-            os.remove(outfile)
+#
+# 1. database functions
+#
 
 
-# database access functions
 def connect():
     """ connect to the database server """
     connection = None
@@ -131,6 +123,7 @@ def connect():
 
 def execute_sql(sql: str) -> list:
     """ excecute SQL statement and return results as list """
+    sql_check_danger(sql=sql)
     results = []
     try:
         cursor.execute(sql)
@@ -179,8 +172,11 @@ def sql_check_danger(sql: str):
         raise Exception(f"ERROR: not valid SQL: \n{sql}")
     # return bad
 
+#
+# 2. export functions
+#
 
-# export functions
+
 def sql2csv(results: list, outfilename: str):
     """ write results into csv file """
     outfile = outfilename + '.csv'
@@ -194,7 +190,7 @@ def sql2csv(results: list, outfilename: str):
             row_str = []
             for value in row:
                 value_str = convert_value_to_string(
-                    value, remove_linebreaks=True, trim=True)
+                    value, remove_linebreaks=True, remove_quotes=True, trim=True)
                 row_str.append(value_str)
             csvwriter.writerow(row_str)
 
@@ -234,7 +230,7 @@ def sql2xlsx(results: list, outfilename: str):
     workbookOut.save(outfile)
 
 
-def convert_value_to_string(value, remove_linebreaks: bool = True, trim: bool = True) -> str:
+def convert_value_to_string(value, remove_linebreaks: bool = True, remove_quotes: bool = True, trim: bool = True) -> str:
     """ convert SQL field types to strings, used in sql2csv """
     value_str = ""
     t = type(value)
@@ -245,6 +241,9 @@ def convert_value_to_string(value, remove_linebreaks: bool = True, trim: bool = 
         if remove_linebreaks:
             value_str = value_str.replace("\r\n", " ").replace(
                 "\n", " ").replace("\r", " ")
+        if remove_quotes:
+            value_str = value_str.replace(
+                "'", "").replace('"', "")  # remove " and '
         if trim:
             value_str = value_str.strip()
             value_str = value_str.replace("\t", " ")  # tabs
@@ -271,8 +270,11 @@ def convert_value_to_string(value, remove_linebreaks: bool = True, trim: bool = 
         quit()
     return value_str
 
+#
+# 3. checksum functions
+#
 
-# checksum functions
+
 def gen_checksum(s: str, my_secret: str) -> str:
     """
     calculate a sha256 checksum/hash of a string
@@ -305,6 +307,26 @@ def check_for_valid_hashfile(sql: str, fileBaseName: str) -> bool:
     return valid
 
 
+#
+# 4. helper functions
+#
+
+def remove_old_output_files(fileBaseName: str):
+    """
+    remove output files prior to re-creation
+    this is done prior to hash check to ensure that there is no output file in case the hash is bad
+    """
+    for ext in (".csv", ".xlsx"):
+        outfile = fileBaseName + ext
+        if os.path.isfile(outfile):
+            os.remove(outfile)
+
+
+#
+# 5. main: loop over .sql files
+#
+
+
 if __name__ == '__main__':
     (connection, cursor) = connect()
     for filename in glob.glob("*.sql"):
@@ -323,7 +345,6 @@ if __name__ == '__main__':
             if ret != True:
                 continue
 
-        sql_check_danger(sql=sql)
         results = execute_sql(sql=sql)
         # if len(results) > 1:
         sql2csv(results=results, outfilename=fileBaseName)
