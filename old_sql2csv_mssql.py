@@ -13,10 +13,15 @@ GRANT SELECT ON SCHEMA :: [dbo] TO username
 # pyinstaller --onefile --console sql2csv_mssql.py
 
 
+# requires Installing Microsoft ODBC Driver for SQL Server
+# https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver15
+
 import os
 import glob
 import csv
 import pyodbc
+import my_credentials
+
 # pip install pyodbc==4.0.27
 # to fix
 # "ImportError: DLL load failed"
