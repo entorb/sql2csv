@@ -28,70 +28,96 @@ download and unzip and add dir to path
 import os
 import glob
 import cx_Oracle
+import psycopg2
 import datetime
 import openpyxl
+import my_credentials
+credentials = {'host': 'myHost', 'port': 5432,
+               'database': 'myDB', 'user': 'myUser', 'password': 'myPwd'}
 
-credentials_MyDB1 = {'host': 'myHost', 'port': 5432,
-                     'database': 'myDB', 'user': 'myUser', 'password': 'myPwd'}
+# credentials = my_credentials.credentials
+# credentials = my_credentials.credentials
 
-credentials = credentials_MyDB1
+
+# db_type = 'oracle'
+db_type = 'postgres'
 
 
 def connect():
-    """ Connect to the PostgreSQL database server """
+    """ Connect to the database server """
     connection = None
     cursor = None
-    try:
+    # try:
+    if db_type == 'oracle':
         connection = cx_Oracle.connect(
             credentials['user'],
             credentials['password'],
             f"{credentials['host']}:{credentials['port']}/{credentials['database']}",
             encoding="UTF-8"
         )
-        cursor = connection.cursor()
-        print(
-            f"connected to database {credentials['database']} on host {credentials['host']}")
-    except (Exception) as error:
-        print("Error while connecting to Oracle", error)
+    if db_type == 'postgres':
+        connection = psycopg2.connect(**credentials)
 
+    cursor = connection.cursor()
+    print(
+        f"connected to database {credentials['database']} on host {credentials['host']}")
+    # except (Exception) as error:
+    #     print("Error while connecting to Database", error)
     return connection, cursor
 
 
-def sql2csv(sql: str, outfile: str = 'out.csv'):
-    """ Excecute SQL statement and write results into csv file """
-    if os.path.isfile(outfile):
-        os.remove(outfile)
+def execute_sql(sql: str) -> list:
+    """ Excecute SQL statement and return results as list """
+    results = []
     try:
-        with open(outfile, mode='w', encoding='utf-8', newline='\n') as fh:
-            cursor.execute(sql)
-            colnames = [desc[0] for desc in cursor.description]
-            fh.write("\t".join(colnames))
-            fh.write("\n")
-            for row in cursor:
-                row_str = []
-                for value in row:
-                    value_str = convert_to_string(
-                        value, remove_linebreaks=True, trim=True)
-                    row_str.append(value_str)
-
-                fh.write("\t".join(row_str))
-                fh.write("\n")
-
+        cursor.execute(sql)
+        colnames = [desc[0] for desc in cursor.description]
+        results.append(colnames)
+        cnt = 0
+        for row in cursor:
+            results.append(row)
+            cnt += 1
+            if cnt > 1000:
+                raise Exception(
+                    "ERROR: too many rows, stopped after 1000 rows")
     except (Exception) as error:
         cursor.execute('ROLLBACK')
         print(error)
+    return results
 
 
-def sql2xlsx(sql: str, outfile: str = 'out.xlsx'):
-    """ Excecute SQL statement and write results into xlsx file """
+def sql2csv(results: list, outfile: str = 'out.csv'):
+    """ Write results into csv file """
     if os.path.isfile(outfile):
         os.remove(outfile)
+
+    if len(results) <= 1:
+        return
+    with open(outfile, mode='w', encoding='utf-8', newline='\n') as fh:
+        colnames = results[0]  # header row
+        fh.write("\t".join(colnames))
+        fh.write("\n")
+        for k in range(1, len(results)):
+            row = results[k]
+            row_str = []
+            for value in row:
+                value_str = convert_value_to_string(
+                    value, remove_linebreaks=True, trim=True)
+                row_str.append(value_str)
+            fh.write("\t".join(row_str))
+            fh.write("\n")
+
+
+def sql2xlsx(results: list, outfile: str = 'out.xlsx'):
+    """ Write results into xlsx file """
+    if os.path.isfile(outfile):
+        os.remove(outfile)
+    if len(results) <= 1:
+        return
     workbookOut = openpyxl.Workbook()
     sheetOut = workbookOut.active
 
-    cursor.execute(sql)
-    # header
-    colnames = [desc[0] for desc in cursor.description]
+    colnames = results.pop(0)  # header row
     i = 1
     j = 1
     for value in colnames:
@@ -103,7 +129,9 @@ def sql2xlsx(sql: str, outfile: str = 'out.xlsx'):
 
     # contents
     i = 2
-    for row in cursor:
+    for k in range(1, len(results)):
+        row = results[k]
+#    for row in results:
         j = 1
         for value in row:
             cellOut = sheetOut.cell(row=i, column=j)
@@ -118,10 +146,12 @@ def sql2xlsx(sql: str, outfile: str = 'out.xlsx'):
     workbookOut.save(outfile)
 
 
-def convert_to_string(value, remove_linebreaks: bool = True, trim: bool = True) -> str:
+def convert_value_to_string(value, remove_linebreaks: bool = True, trim: bool = True) -> str:
     value_str = ""
     t = type(value)
-    if t == str:
+    if value == None:
+        value_str = ""
+    elif t == str:
         value_str = value
         if remove_linebreaks:
             value_str = value_str.replace("\r\n", " ").replace(
@@ -135,7 +165,9 @@ def convert_to_string(value, remove_linebreaks: bool = True, trim: bool = True) 
     elif t == int:
         value_str = str(value)
     elif t == datetime.datetime:
-        value_str = value.strftime("%y%m%d-%H%M%S")
+        value_str = value.strftime("%Y-%m-%d_%H:%M:%S")
+    elif t == datetime.date:
+        value_str = value.strftime("%Y-%m-%d")
     else:
         print(f"unhandled column type: {t}")
     return value_str
@@ -143,17 +175,18 @@ def convert_to_string(value, remove_linebreaks: bool = True, trim: bool = True) 
 
 if __name__ == '__main__':
     (connection, cursor) = connect()
-    # sql = "SELECT SECUENCIA, TIPO, PARAM1, PARAM2, ESTADO, ERROR, ERROR_TXT, TMP_EMISION, TMP_TRATO, CREATION_DATE, LAST_UPDATE_DATE, LAST_UPDATE_PROCESS FROM COM_INBOX"
     for filename in glob.glob("*.sql"):
         print(f'File: {filename}')
         (fileBaseName, fileExtension) = os.path.splitext(filename)
 
         with open(filename, mode='r', encoding='utf-8') as fh:
             sql = fh.read()
-        sql2csv(sql=sql, outfile=fileBaseName+".csv")
-        sql2xlsx(sql=sql, outfile=fileBaseName+".xlsx")
+        results = execute_sql(sql=sql)
+        if len(results) > 1:
+            sql2csv(results=results, outfile=fileBaseName+".csv")
+            sql2xlsx(results=results, outfile=fileBaseName+".xlsx")
 
     if (connection):
         cursor.close()
         connection.close()
-        print("Oracle connection closed")
+        print("Database connection closed")
