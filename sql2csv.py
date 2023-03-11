@@ -313,6 +313,7 @@ if __name__ == '__main__':
 
         remove_old_output_files(fileBaseName)
 
+        # not set newline type here, it might be \n or \r\n
         with open(filename, mode='r', encoding='utf-8') as fh:
             sql = fh.read()
 
