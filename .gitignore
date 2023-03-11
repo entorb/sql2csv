@@ -1,7 +1,8 @@
-__pycache__/
 .vscode/
+__pycache__/
 build/
 dist/
+
 *.hash
 *.csv
 *.spec
