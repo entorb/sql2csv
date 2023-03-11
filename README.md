@@ -9,7 +9,7 @@
 ## Supported Databases
 * PostgreSQL
 * Oracle
-* MS SQL 
+* MS SQL
 * SQLite3
 
 ## TODOs
