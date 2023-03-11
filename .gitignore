@@ -1,9 +1,10 @@
 __pycache__/
+.vscode/
 build/
 dist/
-*.spec
+*.hash
 *.csv
+*.spec
 *.sql
 *.xlsx
-.vscode/launch.json
-my_credentials.py
+sql2csv_credentials.py
