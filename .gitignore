@@ -5,6 +5,7 @@ dist/
 
 *.hash
 *.csv
+*.db
 *.spec
 *.sql
 *.xlsx
