@@ -53,13 +53,14 @@ import hashlib  # for sha256 checksums
 import os
 import re
 import sqlite3
+from typing import Any
 
 import cx_Oracle  # driver for Oracle - pip install cx_Oracle
 import openpyxl  # for Excel writing
 import psycopg2  # PostgreSQL - pip install psycopg2
 import pyodbc  # ODBC driver for MS SQL and others  - pip install pyodbc
-from sql2csv_credentials import credentials
-from sql2csv_credentials import hash_salt
+
+from sql2csv_credentials import credentials, hash_salt
 
 # DB drivers
 # read my credential file
@@ -78,7 +79,7 @@ csv_newline = "\n"
 #
 
 
-def connect():
+def connect() -> tuple:
     """
     Connect to the database server.
     """
@@ -152,7 +153,7 @@ def execute_sql(sql: str) -> list:
     return results
 
 
-def sql_check_danger(sql: str):
+def sql_check_danger(sql: str) -> None:
     """
     Check SQl for bad code.
 
@@ -189,7 +190,7 @@ def sql_check_danger(sql: str):
 #
 
 
-def sql2csv(results: list, outfilename: str):
+def sql2csv(results: list, outfilename: str) -> None:
     """
     Write results into csv file.
     """
@@ -216,7 +217,7 @@ def sql2csv(results: list, outfilename: str):
             csvwriter.writerow(row_str)
 
 
-def sql2xlsx(results: list, outfilename: str):
+def sql2xlsx(results: list, outfilename: str) -> None:
     """
     Write results into Excel .xlsx file.
     """
@@ -231,7 +232,8 @@ def sql2xlsx(results: list, outfilename: str):
         # note: excel index start here with 1
         cellOut = sheetOut.cell(row=i, column=j)
         cellOut.value = value
-        cellOut.font = openpyxl.styles.Font(bold=True)
+        cellOut.font = openpyxl.styles.Font(bold=True)  # type: ignore
+
         j += 1
 
     # contents
@@ -258,7 +260,7 @@ def convert_value_to_string(
     remove_linebreaks: bool = True,
     remove_quotes: bool = True,
     trim: bool = True,
-) -> str:
+) -> Any:
     """
     Convert SQL field types to strings, used in sql2csv.
     """
@@ -357,7 +359,7 @@ def check_for_valid_hashfile(sql: str, fileBaseName: str) -> bool:
 #
 
 
-def remove_old_output_files(fileBaseName: str):
+def remove_old_output_files(fileBaseName: str) -> None:
     """
     Remove output files prior to re-creation.
 
