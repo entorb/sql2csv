@@ -15,10 +15,10 @@ https://github.com/entorb/sql2csv
 * MS SQL 
 * SQLite3
 
-## **SECURITY WARNING:** Only use read-only db-user accounts! <br/>:
+## **SECURITY WARNING:** Only use read-only db-user accounts!
 example for PostgreSQL<br/>
-    GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username
-    GRANT USAGE ON SCHEMA schema_name TO username
+`GRANT SELECT ON ALL TABLES IN SCHEMA schema_name TO username`
+`GRANT USAGE ON SCHEMA schema_name TO username`
 
 ## Requirements
 ### Oracle
@@ -36,8 +36,8 @@ install
 ## TODOs
 - [x] Scan SQL for dangerous commands like DROP/DELETE (incomplete!)
 - [x] Limits the max number of returned rows via limit on cells = columns * rows
-- [] Excel: autosize column width
-- [] hashing of SQL files to prevent modification
+- [ ] Excel: autosize column width
+- [ ] hashing of SQL files to prevent modification
 
 """
 
