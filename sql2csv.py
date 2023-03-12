@@ -59,7 +59,6 @@ import cx_Oracle  # driver for Oracle - pip install cx_Oracle
 import openpyxl  # for Excel writing
 import psycopg2  # PostgreSQL - pip install psycopg2
 import pyodbc  # ODBC driver for MS SQL and others  - pip install pyodbc
-
 from sql2csv_credentials import credentials, hash_salt
 
 # DB drivers
@@ -147,7 +146,7 @@ def execute_sql(sql: str) -> list:
                 raise Exception(
                     f"WARNING: too many values, stopped after {cnt_max_cells} values",
                 )
-    except (Exception) as error:
+    except Exception as error:
         cursor.execute("ROLLBACK")
         print(error)
     return results
