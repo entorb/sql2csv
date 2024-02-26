@@ -11,3 +11,4 @@ dist/
 *.xlsx
 sql2csv_credentials.py
 sql2csv.exe
+2run.cmd
