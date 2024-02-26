@@ -97,21 +97,29 @@ def connect() -> tuple:
         # here database is the path to the database file
         connection = sqlite3.connect(credentials["database"])
         credentials["host"] = "localhost"
+
     elif credentials["db_type"] == "oracle":
         # connection = pyodbc.connect(
         #     f"DRIVER={{ORACLE ODBC DRIVER}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}"  # noqa: E501
         # )
-
         connection = cx_Oracle.connect(
             credentials["user"],
             credentials["password"],
             f"{credentials['host']}:{credentials['port']}/{credentials['database']}",
             encoding="UTF-8",
         )
+
     elif credentials["db_type"] == "mssql":
-        connection = pyodbc.connect(
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}",  # noqa: E501
-        )
+        if credentials["user"] == "<WindowsUser>":
+            # use local windows user via Windows Run As...
+            connection = pyodbc.connect(
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};Trusted_Connection=yes",  # noqa: E501
+            )
+        else:
+            connection = pyodbc.connect(
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}",  # noqa: E501
+            )
+
     else:
         msg = f"Unsupported db_type: '{credentials['db_type']}'"
         raise ValueError(msg)
@@ -261,7 +269,7 @@ def convert_value_to_string(  # noqa: PLR0912, C901
     remove_linebreaks: bool = True,
     remove_quotes: bool = True,
     trim: bool = True,
-) -> Any:  # noqa: ANN401
+) -> str:
     """
     Convert SQL field types to strings, used in sql2csv.
     """
@@ -293,7 +301,7 @@ def convert_value_to_string(  # noqa: PLR0912, C901
                 " ",
             )  # multiple spaces
 
-    elif t == int:
+    elif t in (int, float):
         value_str = str(value)
     elif t == datetime.datetime:
         value_str = value.strftime(csv_format_datetime)
@@ -301,15 +309,14 @@ def convert_value_to_string(  # noqa: PLR0912, C901
         value_str = value.strftime(csv_format_date)
     elif t == bool:
         if value is True:
-            value_str = 1
+            value_str = "1"
         if value is False:
-            value_str = 0
+            value_str = "0"
     elif t in (decimal.Decimal, datetime.timedelta):
         value_str = str(value)
     else:
         msg = f"unhandled column type: {t}"
         raise Exception(msg)  # noqa: TRY002
-        sys.exit()
     return value_str
 
 
@@ -398,10 +405,15 @@ if __name__ == "__main__":
             if ret is not True:
                 continue
 
+        # stop time to execute SQL
+        start = datetime.datetime.now()  # noqa: DTZ005
         results = execute_sql(sql=sql)
-        # if len(results) > 1:
-        sql2csv(results=results, filename=filename)
-        sql2xlsx(results=results, filename=filename)
+        end = datetime.datetime.now()  # noqa: DTZ005
+        print(f"Rows: {len(results)}")
+        print(f"Duration: {end - start}")
+        if len(results) > 1:
+            sql2csv(results=results, filename=filename)
+            sql2xlsx(results=results, filename=filename)
 
     if connection:
         cursor.close()
