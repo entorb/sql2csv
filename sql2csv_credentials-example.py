@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
 """
 Example credential file.
 """
+
 # set to hash_salt = "" if check of hash checksum is not required
 # hash_salt = ""
 hash_salt = "This salt is my secret!"

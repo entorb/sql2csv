@@ -9,7 +9,7 @@ https://github.com/entorb/sql2csv
 * connect to a database
 * read all .sql files of current directory
 * execute one after the other
-* export results set as text (.csv) and Excel (.xslx)
+* export results set as text (.csv) and Excel (.xlsx)
 
 ## Supported Databases
 * PostgreSQL
@@ -22,7 +22,7 @@ https://github.com/entorb/sql2csv
 - [x] Limits the max number of returned rows via limit on cells = columns * rows
 - [x] hashing of SQL files to prevent modification
 - [ ] Excel: autosize column width
-- [ ] use [sqlparse](https://sqlparse.readthedocs.io/en/latest/api/) to remove comments from SQL
+- [ ] [sqlparse](https://sqlparse.readthedocs.io/en/latest/api/) to remove SQL comments
 
 ## **SECURITY WARNING:** Only use read-only db-user accounts!
 example for PostgreSQL<br/>
@@ -48,17 +48,16 @@ install
 import csv  # for .csv writing
 import datetime
 import decimal
-import glob
 import hashlib  # for sha256 checksums
-import os
 import re
 import sqlite3
-from typing import Any
+from pathlib import Path
 
 import cx_Oracle  # driver for Oracle - pip install cx_Oracle
 import openpyxl  # for Excel writing
 import psycopg2  # PostgreSQL - pip install psycopg2
 import pyodbc  # ODBC driver for MS SQL and others  - pip install pyodbc
+
 from sql2csv_credentials import credentials, hash_salt
 
 # DB drivers
@@ -100,7 +99,7 @@ def connect() -> tuple:
         credentials["host"] = "localhost"
     elif credentials["db_type"] == "oracle":
         # connection = pyodbc.connect(
-        #     f"DRIVER={{ORACLE ODBC DRIVER}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}"
+        #     f"DRIVER={{ORACLE ODBC DRIVER}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}"  # noqa: E501
         # )
 
         connection = cx_Oracle.connect(
@@ -111,16 +110,15 @@ def connect() -> tuple:
         )
     elif credentials["db_type"] == "mssql":
         connection = pyodbc.connect(
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}",
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};UID={credentials['user']};PWD={credentials['password']}",  # noqa: E501
         )
     else:
-        raise Exception(
-            f"ERROR: unsupported db_type: '{credentials['db_type']}'",
-        )
+        msg = f"Unsupported db_type: '{credentials['db_type']}'"
+        raise ValueError(msg)
 
     cursor = connection.cursor()
     print(
-        f"connected to database {credentials['database']} on host {credentials['host']}",
+        f"connected to database {credentials['database']} on host {credentials['host']}",  # noqa: E501
     )
     # except (Exception) as error:
     #     print("Error while connecting to Database", error)
@@ -129,24 +127,25 @@ def connect() -> tuple:
 
 def execute_sql(sql: str) -> list:
     """
-    Excecute SQL statement and return results as list.
+    Execute SQL statement and return results as list.
     """
     sql_check_danger(sql=sql)
     results = []
     try:
         cursor.execute(sql)
-        colnames = [desc[0] for desc in cursor.description]
-        cnt_columns = len(colnames)
-        results.append(colnames)
+        col_names = [desc[0] for desc in cursor.description]
+        cnt_columns = len(col_names)
+        results.append(col_names)
         cnt = 0
         for row in cursor:
             results.append(row)
             cnt += cnt_columns
             if cnt > cnt_max_cells:
-                raise Exception(
+                msg = (
                     f"WARNING: too many values, stopped after {cnt_max_cells} values",
                 )
-    except Exception as error:
+                raise Exception(msg)  # noqa: TRY301, TRY002
+    except Exception as error:  # noqa: BLE001
         cursor.execute("ROLLBACK")
         print(error)
     return results
@@ -175,12 +174,14 @@ def sql_check_danger(sql: str) -> None:
     res = re.match(r"\b(" + "|".join(bad_words) + r")\b", sql.lower())
     if res is not None:
         # bad = True
-        raise Exception(f"ERROR: dangerous SQL: \n{sql}")
+        msg = f"ERROR: dangerous SQL: \n{sql}"
+        raise Exception(msg)  # noqa: TRY002
         # sys.exit(1)
     res = re.match(r"[^\b](select)\b", sql.lower())
     if res is not None:
         # bad = True
-        raise Exception(f"ERROR: not valid SQL: \n{sql}")
+        msg = f"ERROR: not valid SQL: \n{sql}"
+        raise Exception(msg)  # noqa: TRY002
     # return bad
 
 
@@ -189,19 +190,19 @@ def sql_check_danger(sql: str) -> None:
 #
 
 
-def sql2csv(results: list, outfilename: str) -> None:
+def sql2csv(results: list, filename: str) -> None:
     """
     Write results into csv file.
     """
-    outfile = outfilename + ".csv"
-    with open(outfile, mode="w", encoding="utf-8", newline=csv_newline) as fh:
+    outfile = Path(filename + ".csv")
+    with outfile.open(mode="w", encoding="utf-8", newline=csv_newline) as fh:
         csvwriter = csv.writer(
             fh,
             delimiter=csv_delimiter,
             quotechar=csv_quotechar,
         )
-        colnames = results[0]  # header row
-        csvwriter.writerow(colnames)
+        col_names = results[0]  # header row
+        csvwriter.writerow(col_names)
         for k in range(1, len(results)):
             row = results[k]
             row_str = []
@@ -216,22 +217,22 @@ def sql2csv(results: list, outfilename: str) -> None:
             csvwriter.writerow(row_str)
 
 
-def sql2xlsx(results: list, outfilename: str) -> None:
+def sql2xlsx(results: list, filename: str) -> None:
     """
     Write results into Excel .xlsx file.
     """
-    outfile = outfilename + ".xlsx"
-    workbookOut = openpyxl.Workbook()
-    sheetOut = workbookOut.active
+    outfile = Path(filename + ".xlsx")
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
 
-    colnames = results[0]  # header row
+    col_names = results[0]  # header row
     i = 1
     j = 1
-    for value in colnames:
+    for value in col_names:
         # note: excel index start here with 1
-        cellOut = sheetOut.cell(row=i, column=j)
-        cellOut.value = value
-        cellOut.font = openpyxl.styles.Font(bold=True)  # type: ignore
+        cell = sheet.cell(row=i, column=j)  # type: ignore
+        cell.value = value
+        cell.font = openpyxl.styles.Font(bold=True)  # type: ignore
 
         j += 1
 
@@ -242,8 +243,8 @@ def sql2xlsx(results: list, outfilename: str) -> None:
         #    for row in results:
         j = 1
         for value in row:
-            cellOut = sheetOut.cell(row=i, column=j)
-            cellOut.value = value
+            cell = sheet.cell(row=i, column=j)  # type: ignore
+            cell.value = value
             j += 1
         i += 1
 
@@ -251,15 +252,16 @@ def sql2xlsx(results: list, outfilename: str) -> None:
     # V1 from https://stackoverflow.com/questions/39529662/python-automatically-adjust-width-of-an-excel-files-columns
     # V2 # from https://izziswift.com/openpyxl-adjust-column-width-size/
 
-    workbookOut.save(outfile)
+    workbook.save(outfile)
 
 
-def convert_value_to_string(
-    value,
+def convert_value_to_string(  # noqa: PLR0912, C901
+    value,  # noqa: ANN001
+    *,
     remove_linebreaks: bool = True,
     remove_quotes: bool = True,
     trim: bool = True,
-) -> Any:
+) -> Any:  # noqa: ANN401
     """
     Convert SQL field types to strings, used in sql2csv.
     """
@@ -302,11 +304,12 @@ def convert_value_to_string(
             value_str = 1
         if value is False:
             value_str = 0
-    elif (t == decimal.Decimal) or (t == datetime.timedelta):
+    elif t in (decimal.Decimal, datetime.timedelta):
         value_str = str(value)
     else:
-        print(f"unhandled column type: {t}")
-        quit()
+        msg = f"unhandled column type: {t}"
+        raise Exception(msg)  # noqa: TRY002
+        sys.exit()
     return value_str
 
 
@@ -319,28 +322,28 @@ def gen_checksum(s: str, my_secret: str) -> str:
     """
     Calculate a sha256 checksum/hash of a string.
 
-    add a "secret/salt" to the string to prevent others from being able to reproduce the checksum without knowing the secret
+    add a "secret/salt" to the string to prevent others from being able to reproduce
+    the checksum without knowing the secret
     """
     m = hashlib.sha256()
     m.update((s + my_secret).encode("utf-8"))
     return m.hexdigest()
 
 
-def check_for_valid_hashfile(sql: str, fileBaseName: str) -> bool:
+def check_for_valid_hash_file(sql: str, filename: str) -> bool:
     """
     Check if file hash is valid.
 
     return False if .hash file is missing or contains a wrong hash
     """
     valid = True
-    filename = fileBaseName + ".hash"
-    if valid and not os.path.exists(filename):
+    outfile = Path(filename + ".hash")
+    if valid and not outfile.exists():
         valid = False
-        print(f"ERROR: missing checksum file '{filename}'")
+        print(f"ERROR: missing checksum file '{outfile}'")
 
     if valid:
-        with open(
-            fileBaseName + ".hash",
+        with outfile.open(
             encoding="utf-8",
             newline="\n",
         ) as fh:
@@ -348,7 +351,7 @@ def check_for_valid_hashfile(sql: str, fileBaseName: str) -> bool:
         checksum_calc = gen_checksum(s=sql, my_secret=hash_salt)
         if checksum_file != checksum_calc:
             valid = False
-            print("ERROR: checksum missmatch")
+            print("ERROR: checksum mismatch")
 
     return valid
 
@@ -358,16 +361,16 @@ def check_for_valid_hashfile(sql: str, fileBaseName: str) -> bool:
 #
 
 
-def remove_old_output_files(fileBaseName: str) -> None:
+def remove_old_output_files(filename: str) -> None:
     """
     Remove output files prior to re-creation.
 
-    this is done prior to hash check to ensure that there is no output file in case the hash is bad
+    this is done prior to hash check to ensure that there is no output file in case
+    the hash is bad
     """
     for ext in (".csv", ".xlsx"):
-        outfile = fileBaseName + ext
-        if os.path.isfile(outfile):
-            os.remove(outfile)
+        outfile = Path(filename + ext)
+        outfile.unlink(missing_ok=True)
 
 
 #
@@ -377,28 +380,28 @@ def remove_old_output_files(fileBaseName: str) -> None:
 
 if __name__ == "__main__":
     (connection, cursor) = connect()
-    for filename in glob.glob("*.sql"):
-        print(f"File: {filename}")
-        (fileBaseName, fileExtension) = os.path.splitext(filename)
+    for filepath in Path().glob("*.sql"):
+        print(f"File: {filepath}")
+        (filename, file_ext) = (filepath.stem, filepath.suffix)
 
-        remove_old_output_files(fileBaseName)
+        remove_old_output_files(filename)
 
         # not set newline type here, it might be \n or \r\n
-        with open(filename, encoding="utf-8") as fh:
+        with filepath.open(encoding="utf-8") as fh:
             sql = fh.read()
 
         if hash_salt != "":  # perform hash check
-            ret = check_for_valid_hashfile(
+            ret = check_for_valid_hash_file(
                 sql=sql,
-                fileBaseName=fileBaseName,
+                filename=filename,
             )
             if ret is not True:
                 continue
 
         results = execute_sql(sql=sql)
         # if len(results) > 1:
-        sql2csv(results=results, outfilename=fileBaseName)
-        sql2xlsx(results=results, outfilename=fileBaseName)
+        sql2csv(results=results, filename=filename)
+        sql2xlsx(results=results, filename=filename)
 
     if connection:
         cursor.close()
