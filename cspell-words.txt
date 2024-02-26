@@ -1,0 +1,15 @@
+# CSpell Custom Dictionary Words
+autoflake
+autoupdate
+csvwriter
+isort
+Menke
+noqa
+ODBC
+onefile
+openpyxl
+psycopg
+pyinstaller
+pyodbc
+pyupgrade
+Torben
