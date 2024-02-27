@@ -12,4 +12,6 @@ psycopg
 pyinstaller
 pyodbc
 pyupgrade
+runas
+savecred
 Torben
