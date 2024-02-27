@@ -77,13 +77,13 @@ csv_newline = "\n"
 #
 
 
-def connect() -> tuple:
+def connect(*, verbose: bool = True) -> tuple:
     """
     Connect to the database server.
     """
     connection = None
     cursor = None
-    # try:
+
     if credentials["db_type"] == "postgres":
         connection = psycopg2.connect(
             host=credentials["host"],
@@ -112,6 +112,7 @@ def connect() -> tuple:
     elif credentials["db_type"] == "mssql":
         if credentials["user"] == "<WindowsUser>":
             # use local windows user via Windows Run As...
+            # in a .bat / .cmd script use: runas /user:SCHAEFFLER\MaQS_DRM_svc /savecred "cmd /K cd c:\myDir && python myScript.py"  # noqa: E501
             connection = pyodbc.connect(
                 f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};Trusted_Connection=yes",  # noqa: E501
             )
@@ -125,11 +126,12 @@ def connect() -> tuple:
         raise ValueError(msg)
 
     cursor = connection.cursor()
-    print(
-        f"connected to database {credentials['database']} on host {credentials['host']}",  # noqa: E501
-    )
-    # except (Exception) as error:
-    #     print("Error while connecting to Database", error)
+
+    if verbose:
+        print(
+            f"connected to database {credentials['database']} on host {credentials['host']}",  # noqa: E501
+        )
+
     return connection, cursor
 
 
@@ -215,7 +217,7 @@ def sql2csv(results: list, filename: str) -> None:
             row = results[k]
             row_str = []
             for value in row:
-                value_str = convert_value_to_string(
+                value_str = _convert_value_to_string(
                     value,
                     remove_linebreaks=True,
                     remove_quotes=True,
@@ -263,7 +265,7 @@ def sql2xlsx(results: list, filename: str) -> None:
     workbook.save(outfile)
 
 
-def convert_value_to_string(  # noqa: PLR0912, C901
+def _convert_value_to_string(  # noqa: PLR0912, C901
     value,  # noqa: ANN001
     *,
     remove_linebreaks: bool = True,
@@ -389,7 +391,7 @@ if __name__ == "__main__":
     (connection, cursor) = connect()
     for filepath in Path().glob("*.sql"):
         print(f"File: {filepath}")
-        (filename, file_ext) = (filepath.stem, filepath.suffix)
+        (filename, file_ext) = (filepath.name, filepath.suffix)
 
         remove_old_output_files(filename)
 
@@ -409,8 +411,9 @@ if __name__ == "__main__":
         start = datetime.datetime.now()  # noqa: DTZ005
         results = execute_sql(sql=sql)
         end = datetime.datetime.now()  # noqa: DTZ005
+        duration = (end - start).total_seconds()
         print(f"Rows: {len(results)}")
-        print(f"Duration: {end - start}")
+        print(f"Duration: {duration:.3f}")
         if len(results) > 1:
             sql2csv(results=results, filename=filename)
             sql2xlsx(results=results, filename=filename)
