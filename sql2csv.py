@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+# TODO: fix ruff
+# ruff: noqa
+
 """
 SQL to CSV.
 
@@ -43,6 +47,7 @@ https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-s
 install
 
 """
+
 # Convert to .exe via
 # pyinstaller --onefile --console sql2csv.py
 import csv  # for .csv writing
@@ -112,7 +117,7 @@ def connect(*, verbose: bool = True) -> tuple:
     elif credentials["db_type"] == "mssql":
         if credentials["user"] == "<WindowsUser>":
             # use local windows user via Windows Run As...
-            # in a .bat / .cmd script use: runas /user:SCHAEFFLER\MaQS_DRM_svc /savecred "cmd /K cd c:\myDir && python myScript.py"  # noqa: E501
+            # in a .bat / .cmd script use: runas /user:MyDomain\MyUser /savecred "cmd /K cd c:\myDir && python myScript.py"  # noqa: E501
             connection = pyodbc.connect(
                 f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER=tcp:{credentials['host']},{credentials['port']};DATABASE={credentials['database']};Trusted_Connection=yes",  # noqa: E501
             )

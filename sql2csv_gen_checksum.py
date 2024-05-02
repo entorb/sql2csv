@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Gen Checksum.
 
@@ -6,6 +5,7 @@ reads all .sql files of current directory
 generate a sha256 hash for each file after adding a secret salt to it
 writes hash to *.hash files
 """
+
 import hashlib
 from pathlib import Path
 
