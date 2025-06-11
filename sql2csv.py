@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-
-# TODO: fix ruff
-# ruff: noqa
-
 """
 SQL to CSV.
 
@@ -284,7 +279,7 @@ def _convert_value_to_string(  # noqa: PLR0912, C901
     t = type(value)
     if value is None:
         value_str = ""
-    elif t == str:
+    elif t is str:
         value_str = value
         if remove_linebreaks:
             value_str = (
@@ -314,7 +309,7 @@ def _convert_value_to_string(  # noqa: PLR0912, C901
         value_str = value.strftime(csv_format_datetime)
     elif t == datetime.date:
         value_str = value.strftime(csv_format_date)
-    elif t == bool:
+    elif t is bool:
         if value is True:
             value_str = "1"
         if value is False:
