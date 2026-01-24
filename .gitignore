@@ -1,0 +1,15 @@
+__pycache__/
+.vscode/
+build/
+dist/
+
+.DS_Store
+*.csv
+*.db
+*.hash
+*.spec
+*.sql
+*.xlsx
+2run.cmd
+sql2csv_credentials.py
+sql2csv.exe
