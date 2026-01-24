@@ -1,0 +1,23 @@
+# CSpell Custom Dictionary Words
+autoflake
+autosize
+autoupdate
+csvwriter
+hiddenimport
+isort
+Menke
+noqa
+ODBC
+onefile
+openpyxl
+psycopg
+pycache
+pyinstaller
+pyodbc
+pyupgrade
+runas
+savecred
+Schaeffler
+sqlparse
+Torben
+xslx
