@@ -1,0 +1,4 @@
+cx_Oracle
+openpyxl
+psycopg2
+pyodbc
