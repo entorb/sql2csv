@@ -19,6 +19,7 @@ rumdl
 runas
 savecred
 Schaeffler
+shfmt
 sqlparse
 Torben
 xslx
